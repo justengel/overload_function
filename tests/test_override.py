@@ -1,7 +1,26 @@
 # from override_function import override_function
 import override_function
 
+import contextlib
 
+RUNS = 0
+
+def print_func(func):
+    def wrapper(*args, **kwargs):
+        global RUNS
+
+        print("==========", "Starting", func.__name__, "==========")
+        ret = func(*args, **kwargs)
+        print("finished successfully!")
+        print("==========", "Ending", func.__name__, "==========")
+        print()
+        RUNS += 1
+
+        return ret
+    return wrapper
+
+
+@print_func
 def test_override_function_simple():
     class Test(object):
         def __init__(self, x=0):
@@ -33,9 +52,8 @@ def test_override_function_simple():
     assert t.x == 0
     assert t.bool_test
 
-    print("test_override_function_simple passed!")
 
-
+@print_func
 def test_override_function_advanced():
     class Point(object):
         def __init__(self, x=0, y=0):
@@ -90,9 +108,8 @@ def test_override_function_advanced():
     assert t3.b is True
     assert t3.p == Point(1, 1)
 
-    print("test_override_function_advanced passed!")
 
-
+@print_func
 def test_function_override():
     t1 = []
     t2 = []
@@ -111,9 +128,8 @@ def test_function_override():
     run1("3", "3")
     assert t2 == [(3, 3)]
 
-    print("test_function_override passed!")
 
-
+@print_func
 def test_custom_match_function():
     """This test will only match a function if an overrider keyword argument is given and it matches the
     function default value.
@@ -191,7 +207,105 @@ def test_custom_match_function():
     assert t.x == 2
     assert t.b == 3
 
-    print("test_custom_match_function passed!")
+
+@print_func
+def test_override_function_nesting():
+
+    class Point(object):
+        def __init__(self, x=0, y=0):
+            self.x = x
+            self.y = y
+
+        def __eq__(self, obj):
+            try:
+                return self.x == obj.x and self.y == obj.y
+            except:
+                return False
+
+    class Test(object):
+        @override_function
+        def __init__(self, s: str="", x: int=0, b: bool=False, p: Point=Point()):
+            self.s = s
+            self.x = x
+            self.b = b
+            self.p = p
+
+        @__init__.override
+        def __init__(self, x: int=0, b: bool=False, s: str="", p: Point=Point()):
+            self.__init__(s, x, b, p)
+
+        @__init__.override
+        def __init__(self, p: Point=Point(), x: int=0, b: bool=False, s: str=""):
+            self.__init__(s, x, b, p)
+
+    t1 = Test("Hello World!", 1, True, Point(1, 1))
+    assert t1.s == "Hello World!"
+    assert t1.x == 1
+    assert t1.b is True
+    assert t1.p == Point(1, 1)
+
+    # Override x first
+    t2 = Test(1, True, "Hello World!", Point(1, 1))
+    assert t2.s == "Hello World!"
+    assert t2.x == 1
+    assert t2.b is True
+    assert t2.p == Point(1, 1)
+
+    # Override p first
+    t3 = Test(Point(1, 1), 1, True, "Hello World!")
+    assert t3.s == "Hello World!"
+    assert t3.x == 1
+    assert t3.b is True
+    assert t3.p == Point(1, 1)
+
+
+    # ========== Test forcing a specific function ==========
+    def match_on_overrider(given_args, given_kwargs, func, spec_arg_names, spec_annotations, spec_defaults):
+        """Force a specific function call."""
+        try:
+            idx = spec_arg_names.index("overrider")
+            overrider_val = spec_defaults[idx]
+            if overrider_val == given_kwargs["overrider"]:
+                return float("inf")
+        except:
+            pass
+        return 0
+
+    class Test(object):
+        @override_function(match_func=match_on_overrider)
+        def __init__(self, s: str="", x: int=0, b: bool=False, p: Point=Point(), overrider="first"):
+            self.s = s
+            self.x = x
+            self.b = b
+            self.p = p
+
+        @__init__.override
+        def __init__(self, x: int=0, b: bool=False, s: str="", p: Point=Point(), overrider="second"):
+            self.__init__(s, x, b, p, overrider="first")
+
+        @__init__.override
+        def __init__(self, p: Point=Point(), x: int=0, b: bool=False, s: str="", overrider="third"):
+            self.__init__(s, x, b, p, overrider="first")
+
+    t1 = Test("Hello World!", 1, True, Point(1, 1), overrider="first")
+    assert t1.s == "Hello World!"
+    assert t1.x == 1
+    assert t1.b is True
+    assert t1.p == Point(1, 1)
+
+    # Override x first
+    t2 = Test(1, True, "Hello World!", Point(1, 1), overrider="second")
+    assert t2.s == "Hello World!"
+    assert t2.x == 1
+    assert t2.b is True
+    assert t2.p == Point(1, 1)
+
+    # Override p first
+    t3 = Test(Point(1, 1), 1, True, "Hello World!", overrider="third")
+    assert t3.s == "Hello World!"
+    assert t3.x == 1
+    assert t3.b is True
+    assert t3.p == Point(1, 1)
 
 
 if __name__ == '__main__':
@@ -199,5 +313,6 @@ if __name__ == '__main__':
     test_override_function_advanced()
     test_function_override()
     test_custom_match_function()
+    test_override_function_nesting()
 
-    print("All tests finished successfully!")
+    print("All tests finished successfully!", RUNS, "tests ran.")
