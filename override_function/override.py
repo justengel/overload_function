@@ -2,6 +2,9 @@ import inspect
 import collections
 
 
+__all__ = ['override_function', 'get_arg_type', 'match']
+
+
 def get_arg_type(args, kwargs, idx, varname):
     try:
         return type(kwargs[varname])
@@ -12,13 +15,47 @@ def get_arg_type(args, kwargs, idx, varname):
             return None
 
 
+def match(given_args, given_kwargs, func, spec_arg_names, spec_annotations, spec_defaults):
+    """Compare arguments and return a weight for how much you want to use this function.
+
+    Args:
+        given_args (tuple): Arguments given to the function call.
+        given_kwargs (dict): Keyword arguments given to the function call.
+        func (function): Function that you are checking arguments for
+        spec_arg_names (list): List of argument names in order found with inspect.getfullargspec.
+        spec_annotations (dict): Dictionary of spec argument names and type annotations to try and match.
+        spec_defaults (tuple): Default values that match the spec_arg_names.
+
+    Returns:
+        weight (int): Integer that dictates how likely this function is to be the correct function. The highest
+            number will be used in deciding which function should be called.
+    """
+    weight = sum([1 for j, varname in enumerate(spec_arg_names)
+                  if (spec_annotations.get(varname, None) is None or
+                      get_arg_type(given_args, given_kwargs, j, varname) == spec_annotations.get(varname, None))
+                  ])
+    return weight
+
+
 class FunctionManager(object):
-    def __init__(self, func=None):
+
+    match = staticmethod(match)
+
+    def __init__(self, func=None, match_func=None):
+        self.match_func = match_func
         self.funcs = []
         self.arg_spec = []
 
+        # Set match as the default match function
+        if self.match_func is None:
+            self.match_func = self.match
+
         if func is not None:
             self.override(func)
+
+    def set_match_func(self, match_func):
+        self.match_func = match_func
+        return self
 
     def override(self, func):
         """override the current function for a set of specific inputs."""
@@ -40,6 +77,7 @@ class FunctionManager(object):
         """Compare the arguments with each functions full argument spec and return the index of the function that
         matches the arguments best.
         """
+
         comp = []
         for i in range(len(self.arg_spec)):
             func = self.funcs[i]
@@ -48,19 +86,22 @@ class FunctionManager(object):
             if (hasattr(func, "__self__") and func.__self__ is not None and
                     len(spec.args) > 0 and spec.args[0] == "self"):
                 offset = 1
-            match_points = sum([1 for j, varname in enumerate(spec.args[offset:])
-                                if (spec.annotations.get(varname, None) is None or
-                                    get_arg_type(args, kwargs, j, varname) == spec.annotations.get(varname, None))
-                                ])
-            comp.append(match_points)
+            weight = self.match_func(args, kwargs, func, spec.args[offset:], spec.annotations, spec.defaults)
+            comp.append(weight)
 
         best_match = max(comp)
         return comp.index(best_match)
 
     def __call__(self, *args, **kwargs):
         """Compare the args and call the function that most closely matches the arguments."""
-        idx = self.compare_args(*args, **kwargs)
-        return self.funcs[idx](*args, **kwargs)
+        if len(self.funcs) == 0 and len(args) > 0 and callable(args[0]):
+            # Class was created with a match_func and no function. Override the given function
+            self.override(args[0])
+            return self
+
+        else:
+            idx = self.compare_args(*args, **kwargs)
+            return self.funcs[idx](*args, **kwargs)
 
 
 class override_function(FunctionManager):
@@ -73,7 +114,7 @@ class override_function(FunctionManager):
             instance.__override_functions__ = {}
 
         if self not in instance.__override_functions__:
-            mngr = FunctionManager()
+            mngr = FunctionManager(match_func=self.match_func)
 
             for func in self.funcs:
                 mngr.override(func.__get__(instance, instance.__class__))

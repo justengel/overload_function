@@ -1,6 +1,6 @@
 import sys
 import types
-from .override import override_function
+from .override import override_function, get_arg_type, match
 
 
 class OverrideModule(types.ModuleType):
@@ -38,8 +38,8 @@ class OverrideModule(types.ModuleType):
     """
     override_function = override_function
 
-    def __call__(self, func):
-        return self.override_function(func)
+    def __call__(self, *args, **kwargs):
+        return self.override_function(*args, **kwargs)
 
 
 # Make this module callable

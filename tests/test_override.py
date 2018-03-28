@@ -114,9 +114,90 @@ def test_function_override():
     print("test_function_override passed!")
 
 
+def test_custom_match_function():
+    """This test will only match a function if an overrider keyword argument is given and it matches the
+    function default value.
+
+    If all functions weight are equal the first function will be used.
+    """
+
+    def match_on_overrider(given_args, given_kwargs, func, spec_arg_names, spec_annotations, spec_defaults):
+        """Compare arguments and return a weight for how much you want to use this function.
+
+        Args:
+            given_args (tuple): Arguments given to the function call.
+            given_kwargs (dict): Keyword arguments given to the function call.
+            func (function): Function that you are checking arguments for
+            spec_arg_names (list): List of argument names in order found with inspect.getfullargspec.
+            spec_annotations (dict): Dictionary of spec argument names and type annotations to try and match.
+            spec_defaults (tuple): Default values that match the spec_arg_names.
+
+        Returns:
+            weight (int): Integer that dictates how likely this function is to be the correct function. The highest
+                number will be used in deciding which function should be called.
+        """
+        try:
+            idx = spec_arg_names.index("overrider")
+            overrider_val = spec_defaults[idx]
+            if overrider_val == given_kwargs["overrider"]:
+                return float("inf")
+        except:
+            pass
+        return 0
+        # return override_function.match(given_args, given_kwargs,
+        #                                func, spec_arg_names, spec_annotations, spec_defaults)
+
+
+    class Test(object):
+        @override_function(match_func=match_on_overrider)
+        def __init__(self, s:str="", x:int=0, b:bool=False, overrider:None="first"):
+            self.s = s
+            self.x = x
+            self.b = b
+            print("overrider", overrider)
+
+        @__init__.override
+        def __init__(self, x:int=0, b:bool=False, s:str="", overrider:None="second"):
+            self.s = s
+            self.x = x
+            self.b = b
+            print("overrider", overrider)
+
+        @__init__.override
+        def __init__(self,  b:bool=False, x:int=0, s:str="", overrider:None="third"):
+            self.s = s
+            self.x = x
+            self.b = b
+            print("overrider", overrider)
+
+
+    t = Test(1, 2, 3, overrider="third")
+    assert t.s == 3
+    assert t.x == 2
+    assert t.b == 1
+
+    t = Test(1, 2, 3, overrider="first")
+    assert t.s == 1
+    assert t.x == 2
+    assert t.b == 3
+
+    t = Test(1, 2, 3, overrider="second")
+    assert t.s == 3
+    assert t.x == 1
+    assert t.b == 2
+
+    t = Test(1, 2, 3)  # Will used the first function set (overrider=="first")
+    assert t.s == 1
+    assert t.x == 2
+    assert t.b == 3
+
+    print("test_custom_match_function passed!")
+
+
 if __name__ == '__main__':
     test_override_function_simple()
     test_override_function_advanced()
     test_function_override()
+    test_custom_match_function()
 
     print("All tests finished successfully!")

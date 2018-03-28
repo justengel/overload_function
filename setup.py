@@ -33,10 +33,10 @@ if __name__ == "__main__":
 
     setup(
         name="override_function",
-        version="1.0.0",
+        version="1.1.0",
         description="Library to override function and methods like C++. This library tries to match type annotations.",
         url="https://github.com/HashSplat/override_function",
-        download_url="https://github.com/HashSplat/override_function/archive/v1.0.0.tar.gz",
+        download_url="https://github.com/HashSplat/override_function/archive/v1.1.0.tar.gz",
 
         keywords=["override", "override function", "override method"],
 
