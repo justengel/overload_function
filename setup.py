@@ -32,13 +32,13 @@ if __name__ == "__main__":
     # ===== END Requirements =====
 
     setup(
-        name="override_function",
+        name="overload_function",
         version="1.1.0",
-        description="Library to override function and methods like C++. This library tries to match type annotations.",
-        url="https://github.com/HashSplat/override_function",
-        download_url="https://github.com/HashSplat/override_function/archive/v1.1.0.tar.gz",
+        description="Library to overload function and methods like C++. This library tries to match type annotations.",
+        url="https://github.com/HashSplat/overload_function",
+        download_url="https://github.com/HashSplat/overload_function/archive/v1.1.0.tar.gz",
 
-        keywords=["override", "override function", "override method"],
+        keywords=["overload", "overload function", "overload method"],
 
         author="Justin Engel",
         author_email="jtengel08@gmail.com",
@@ -53,7 +53,7 @@ if __name__ == "__main__":
         scripts=[],
 
         long_description=read("README.md"),
-        packages=["override_function"],
+        packages=["overload_function"],
         install_requires=requirements,
 
         include_package_data=False,

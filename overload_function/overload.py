@@ -2,7 +2,7 @@ import inspect
 import collections
 
 
-__all__ = ['override_function', 'get_arg_type', 'match']
+__all__ = ['overload_function', 'get_arg_type', 'match']
 
 
 def get_arg_type(args, kwargs, idx, varname):
@@ -51,20 +51,20 @@ class FunctionManager(object):
             self.match_func = self.match
 
         if func is not None:
-            self.override(func)
+            self.overload(func)
 
     def set_match_func(self, match_func):
         self.match_func = match_func
         return self
 
-    def override(self, func):
-        """override the current function for a set of specific inputs."""
+    def overload(self, func):
+        """overload the current function for a set of specific inputs."""
         arg_spec = inspect.getfullargspec(func)
         self.funcs.append(func)
         self.arg_spec.append(arg_spec)
         return self
 
-    def remove_override(self, func):
+    def remove_overload(self, func):
         try:
             idx = self.funcs.index(func)
             self.funcs.pop(idx)
@@ -95,8 +95,8 @@ class FunctionManager(object):
     def __call__(self, *args, **kwargs):
         """Compare the args and call the function that most closely matches the arguments."""
         if len(self.funcs) == 0 and len(args) > 0 and callable(args[0]):
-            # Class was created with a match_func and no function. Override the given function
-            self.override(args[0])
+            # Class was created with a match_func and no function. overload the given function
+            self.overload(args[0])
             return self
 
         else:
@@ -104,24 +104,24 @@ class FunctionManager(object):
             return self.funcs[idx](*args, **kwargs)
 
 
-class override_function(FunctionManager):
+class overload_function(FunctionManager):
     """Decorator to properly select the function manager."""
 
     def get_function_manager(self, instance=None):
         if instance is None:
             instance = self
-        if not hasattr(instance, "__override_functions__"):
-            instance.__override_functions__ = {}
+        if not hasattr(instance, "__overload_functions__"):
+            instance.__overload_functions__ = {}
 
-        if self not in instance.__override_functions__:
+        if self not in instance.__overload_functions__:
             mngr = FunctionManager(match_func=self.match_func)
 
             for func in self.funcs:
-                mngr.override(func.__get__(instance, instance.__class__))
+                mngr.overload(func.__get__(instance, instance.__class__))
 
-            instance.__override_functions__[self] = mngr
+            instance.__overload_functions__[self] = mngr
 
-        return instance.__override_functions__[self]
+        return instance.__overload_functions__[self]
 
     def __get__(self, instance, owner):
         """Return the function manager to help call the correct function."""
