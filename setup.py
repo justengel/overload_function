@@ -11,7 +11,14 @@ import glob
 from setuptools import setup
 
 import uuid
-from pip.req import parse_requirements
+
+try:
+    from pip.req import parse_requirements
+except ImportError:
+    def parse_requirements(filename, *args, **kwargs):
+        """ load requirements from a pip requirements file """
+        lineiter = (line.strip() for line in open(filename))
+        return [line for line in lineiter if line and not line.startswith("#")]
 
 
 def read(fname):
@@ -33,10 +40,10 @@ if __name__ == "__main__":
 
     setup(
         name="overload_function",
-        version="1.2.0",
+        version="1.2.1",
         description="Library to overload function and methods like C++. This library tries to match type annotations.",
         url="https://github.com/HashSplat/overload_function",
-        download_url="https://github.com/HashSplat/overload_function/archive/v1.2.0.tar.gz",
+        download_url="https://github.com/HashSplat/overload_function/archive/v1.2.1.tar.gz",
 
         keywords=["overload", "overload function", "overload method"],
 
