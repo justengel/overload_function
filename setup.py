@@ -33,10 +33,10 @@ if __name__ == "__main__":
 
     setup(
         name="overload_function",
-        version="1.2.2",
+        version="1.2.3",
         description="Library to overload function and methods like C++. This library tries to match type annotations.",
-        url="https://github.com/HashSplat/overload_function",
-        download_url="https://github.com/HashSplat/overload_function/archive/v1.2.2.tar.gz",
+        url="https://github.com/justengel/overload_function",
+        download_url="https://github.com/justengel/overload_function/archive/v1.2.3.tar.gz",
 
         keywords=["overload", "overload function", "overload method"],
 
